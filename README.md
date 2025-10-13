@@ -6,7 +6,7 @@
 
 We are checking the U-value information of the buidlings encvelope, this includes the windows, walls, ceilings and floors. Doors and other building elements are not included in our analysis, as they are not present in the MEP report.
 
-This assignment will only include the windows!
+The assignment has been expanded from A1 only including windows, to now also include walls, ceilings and floors.
 
 The claims are present in the 25-16-D-MEP report on page 5 and 6 in section 2,1 and 2,4, specifically in table 1 and 3. 
 
@@ -36,6 +36,7 @@ An Excel file is created on your Desktop with one row per window, including:
 #### BPMN diagram
 ![BPMN diagram](figures/Use_case_diagram.svg)
 
+#### Requirements
 
 
 
