@@ -4,7 +4,7 @@
 
 ### The claim we are checking
 
-We are checking the U-value information of the buidlings encvelope, this includes the *windows*, *walls*, *ceilings* and *floors*. Doors and other building elements are not included in our analysis, as they are not present in the MEP report.
+We are checking the U-value information of the buidlings encvelope, this includes the _windows_, _walls_, _ceilings_ and _floors_. Doors and other building elements are not included in our analysis, as they are not present in the MEP report.
 
 The assignment has been expanded from A1 only including windows, to now also include walls, ceilings and floors.
 
