@@ -37,7 +37,8 @@ An Excel file is created on your Desktop with one row per window, including:
 ![BPMN diagram](figures/Use_case_diagram.svg)
 
 #### Requirements
-
+From the IFC mocel, it is essential to get IFC classification data and geometric data. We need data from a construction library.
+It would be best if the IFC included material data, but this can also be gathered from an external predefined material datasheet.
 
 
 
