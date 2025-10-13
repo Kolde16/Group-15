@@ -34,7 +34,7 @@ An Excel file is created on your Desktop with one row per window, including:
 - U-values for glass, frame, and the whole window  
 
 #### BPMN diagram
-![BPMN diagram](figures/Use case diagram.svg)
+![BPMN diagram](figures/Use_case_diagram.svg)
 
 
 
