@@ -14,7 +14,7 @@ A Python tool that automates the extraction of building envelope data from IFC (
 
 ## 🛠️ Prerequisites & Installation
 
-You need **Python 3.x** installed.
+This tool is designed to run locally on your computer. It is optimized for the **Spyder IDE** (typically installed with Anaconda).
 
 ### 1. Install Dependencies
 This tool relies on `ifcopenshell` for BIM processing and `pandas` for data handling.
@@ -25,7 +25,21 @@ pip install ifcopenshell pandas numpy openpyxl
 
 *> **Note:** If `pip install ifcopenshell` fails (as it depends on C++ libraries), it is recommended to install via Conda: `conda install -c conda-forge ifcopenshell`*
 
-### 2. Configuration
+### 2. Folder Setup
+The script is programmed to look for the IFC file in the **exact same folder** as the Python file.
+
+1.  Create a new folder on your computer (e.g., `Documents/Thermal_Tool`).
+2.  Save the code as `main.py` inside that folder.
+3.  **Copy your `.ifc` file into that exact same folder.**
+
+**Your folder structure must look like this:**
+```text
+📂 Thermal_Tool
+ ├── 📄 main.py
+ └── 📄 25-16-D-ARCH.ifc
+```
+
+### 3. Configuration
 Open `main.py` and set your target file near the top of the script:
 
 ```python
