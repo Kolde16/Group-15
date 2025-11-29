@@ -1,8 +1,8 @@
-# 🌡️ IFC Thermal Quantifier
+# IFC Thermal Quantifier
 
 A Python tool that automates the extraction of building envelope data from IFC (Industry Foundation Classes) models. It parses Windows, Walls, Slabs, and Roofs to generate a comprehensive **Thermal Report** in Excel format, calculating weighted average U-values and material quantities.
 
-## 🚀 Features
+## Features
 
 *   **Automated Extraction:** Scans IFC models for Walls, Windows, Slabs, and Roofs.
 *   **Smart Data Cleaning:** Converts messy text inputs (e.g., "150mm", "0.3 W/m²K") into usable float numbers.
@@ -12,7 +12,7 @@ A Python tool that automates the extraction of building envelope data from IFC (
 
 ---
 
-## 🛠️ Prerequisites & Installation
+## Prerequisites & Installation
 
 This tool is designed to run locally on your computer. It is optimized for the **Spyder IDE** (typically installed with Anaconda).
 
