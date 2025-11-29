@@ -177,10 +177,10 @@ def weighted_avg(x):
 ## ❓ Design Decisions & Exclusions
 
 ### Why are Doors excluded?
-You will notice the script processes `IfcWindow`, `IfcWall`, `IfcSlab`, and `IfcRoof`, but explicitly ignores `IfcDoor`.
+You will notice the script processes `IfcWindow`, `IfcWall`, `IfcSlab`, and `IfcRoof`, but explicitly ignores `IfcDoor`. This is due to two critical issues:
 
-*   **The Problem:** Doors are complex hybrid elements. A single door entity often contains an opaque panel (wood/steel), a glazing panel, and a frame. Applying the standard "Window Logic" (simple Frame/Glass ratio) or "Wall Logic" (solid thickness) would result in scientifically inaccurate U-values.
-*   **The Solution:** To maintain data integrity, doors are currently excluded. A dedicated `process_doors` function is required to distinguish between fully glazed doors (patio doors) and opaque doors (entrance doors) before calculation.
+1.  **Data Reliability (Internal vs. External):** In many BIM workflows, the `IsExternal` property for doors is set manually and often defaults to "True". Consequently, internal doors (e.g., apartment entrances, corridor doors) are frequently mislabeled as external. Including them would erroneously inflate the building envelope area, destroying the accuracy of the thermal report.
+2.  **Material Complexity:** Doors are complex hybrid elements. A single door entity often contains an opaque panel (wood/steel), a glazing panel, and a frame. Applying the standard "Window Logic" (simple Frame/Glass ratio) would result in scientifically inaccurate U-values.
 
 ### Why Weighted Averages?
 The **Master Summary** uses **Area-Weighted Averages** for U-Values, not simple arithmetic means.
