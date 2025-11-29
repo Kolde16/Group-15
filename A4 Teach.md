@@ -174,7 +174,7 @@ def weighted_avg(x):
     # Numpy weighted average
     return np.average(valid_rows['U_Value'], weights=valid_rows['Area_m2'])
 ```
-## ❓ Design Decisions & Exclusions
+## Design Decisions & Exclusions
 
 ### Why are Doors excluded?
 You will notice the script processes `IfcWindow`, `IfcWall`, `IfcSlab`, and `IfcRoof`, but explicitly ignores `IfcDoor`. This is due to two critical issues:
@@ -191,7 +191,7 @@ $$ U_{avg} = \frac{\sum (U_i \times Area_i)}{\sum Area_{total}} $$
 
 ---
 
-## 📊 The Output Report
+## The Output Report
 
 The script automatically generates an Excel file named `{Filename}_THERMAL_REPORT.xlsx`. The report is structured into three tiers of granularity:
 
@@ -203,7 +203,7 @@ The script automatically generates an Excel file named `{Filename}_THERMAL_REPOR
 
 ---
 
-## ⚠️ Known Limitations
+## Known Limitations
 
 1.  **Curved Geometry:** The geometric area calculator (`ifcopenshell.geom`) approximates curved surfaces (like domes or curved walls) by triangulating them. For extremely high-curvature surfaces, the area may vary slightly from the exact mathematical surface area.
 2.  **Missing Property Sets:** If an IFC file contains no thermal properties (`ThermalTransmittance`) and no material associations, the `U_Value` column will result in `None`. The script cannot "guess" physics without input data.
