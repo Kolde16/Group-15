@@ -137,7 +137,8 @@ Windows are calculated as composite elements. The code attempts to derive a **We
     *   If `FrameWidth` is found: It calculates the exact geometric area of the frame vs the glass.
     *   *Fallback:* If dimensions are missing, it applies a default standard: **15% Frame / 85% Glass**.
 3.  **Physics Formula:**
-    $$ U_{total} = \frac{(U_{glass} \cdot A_{glass}) + (U_{frame} \cdot A_{frame})}{A_{total}} $$
+
+$$ U_{total} = \frac{(U_{glass} \cdot A_{glass}) + (U_{frame} \cdot A_{frame})}{A_{total}} $$
 
 ```python
 # Logic excerpt from process_windows
