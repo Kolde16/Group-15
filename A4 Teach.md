@@ -167,3 +167,113 @@ def weighted_avg(x):
     # Numpy weighted average
     return np.average(valid_rows['U_Value'], weights=valid_rows['Area_m2'])
 ```
+
+## 🧠 Technical Walkthrough
+
+This code operates as a linear pipeline that transforms raw, unstructured BIM data into a structured engineering report. Below is the detailed logic flow.
+
+### 1. The "Fuzzy" Property Hunter
+One of the biggest challenges with IFC files is that parameters are inconsistent. A U-Value might be called "ThermalTransmittance", "U-Value", or "Heat Transfer Coeff".
+
+To solve this, the code uses a **Fuzzy Search Strategy** implemented in `find_prop_value`.
+
+*   **Logic:** It iterates through every property set attached to an element.
+*   **Merging:** It combines *Type Properties* (shared by the family) and *Instance Properties* (specific to the object) into a single dictionary. Instance properties always take precedence.
+*   **Search:** It looks for partial string matches (e.g., matching "Width" inside "Frame Width").
+
+```python
+def find_prop_value(merged_props, keys_to_find, precise_pset=None):
+    # Iterates through all property sets to find a key match
+    for pset_name, props in merged_props.items():
+        # Check against list of possible names (e.g. ["U Value", "ThermalTransmittance"])
+        for k, v in props.items():
+            for key in keys_to_find:
+                if key.lower() in k.lower(): 
+                    return get_real_value(v) # Returns the underlying value
+    return None
+```
+
+### 2. Unit Normalization (`clean_numeric`)
+BIM data often mixes strings and floats. The code includes a robust sanitizer to ensure all dimensions are converted to **Meters**.
+
+*   **Regex Parsing:** Handles strings like `"150mm"` or `"0.15m"`.
+*   **Heuristic:** If a raw number is greater than `20` (e.g., `300`), the code assumes the input is in millimeters and divides by 1000.
+
+```python
+def clean_numeric(val):
+    s = str(val).strip().lower()
+    # 1. Regex for explicit units
+    if "mm" in s:
+        num = re.search(r"(\d+(\.\d+)?)", s)
+        return float(num.group(1)) / 1000.0
+    
+    # 2. Heuristic for raw numbers (Assuming wall thickness > 20m is impossible)
+    f = float(val)
+    if f > 20: return f / 1000.0
+    return f
+```
+
+### 3. Window Physics Engine (`process_windows`)
+Windows are calculated as composite elements. The code attempts to derive a **Weighted U-Value** based on the specific ratio of Frame to Glass.
+
+1.  **Material Scan:** The code inspects `IfcRelAssociatesMaterial` to find constituents. It searches for keywords like `"glass"` or `"glaz"` to separate the glazing material from the frame material.
+2.  **Geometry Calculation:**
+    *   If `FrameWidth` is found: It calculates the exact geometric area of the frame vs the glass.
+    *   *Fallback:* If dimensions are missing, it applies a default standard: **15% Frame / 85% Glass**.
+3.  **Physics Formula:**
+    $$ U_{total} = \frac{(U_{glass} \cdot A_{glass}) + (U_{frame} \cdot A_{frame})}{A_{total}} $$
+
+```python
+# Logic excerpt from process_windows
+if frame_w and w_m and h_m:
+    # Precise Area Calculation
+    inner_w = max(0.0, w_m - 2*frame_w)
+    inner_h = max(0.0, h_m - 2*frame_w)
+    g_area = inner_w * inner_h
+    f_area = max(0.0, area_total - g_area)
+else:
+    # Fallback Ratio
+    f_area = area_total * 0.15
+    g_area = area_total * 0.85
+```
+
+### 4. Geometry Fallback Engine (`process_slabs`)
+For complex geometry (like Roofs or Slabs) where the architect may not have exported a "NetArea" property, the code utilizes the `ifcopenshell.geom` engine.
+
+*   **Mesh Generation:** It converts the IFC implicit geometry into a triangular mesh.
+*   **Normal Vector Analysis:** To get the "Footprint" or "Top Surface Area", the code iterates through every face of the mesh. It calculates the **Cross Product** to find the normal vector.
+*   **Selection:** It only sums the area of faces pointing **Upwards** (Positive Z-axis).
+
+```python
+def calculate_geom_area(elem):
+    shape = ifcopenshell.geom.create_shape(settings, elem)
+    # ... extract verts and faces ...
+    for face in faces:
+        p1, p2, p3 = verts[face[0]], verts[face[1]], verts[face[2]]
+        cross = np.cross(p2 - p1, p3 - p1)
+        
+        # Check if Normal Vector points UP (Z > 0)
+        if (cross / np.linalg.norm(cross))[2] > 0:
+            total_up += 0.5 * np.linalg.norm(cross) # Add Triangle Area
+    return total_up
+```
+
+### 5. Classification Logic
+The code infers the function of an element based on ambiguous data.
+*   **Foundations:** Detected if `PredefinedType` is `BASESLAB` or name contains "found".
+*   **Roofs:** Detected if `IfcRoof` entity or name contains "roof".
+*   **External vs Internal:** Detected by checking the `IsExternal` property set or searching for "ext" in the element function.
+
+### 6. Weighted Aggregation (`run_main`)
+In the final step, the code uses `pandas` to generate the Excel report. It groups elements by Type and Category.
+
+Crucially, it calculates **Area-Weighted Averages** for U-Values. A simple arithmetic mean would be inaccurate because small elements would skew the data as much as large ones.
+
+```python
+def weighted_avg(x):
+    # Drops rows with missing U-values to prevent errors
+    valid_rows = x.dropna(subset=['U_Value'])
+    if valid_rows.empty: return None
+    # Numpy weighted average
+    return np.average(valid_rows['U_Value'], weights=valid_rows['Area_m2'])
+```
