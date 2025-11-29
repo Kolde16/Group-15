@@ -161,3 +161,122 @@ python main.py
 ```
 
 The report will be generated on your **Desktop**.
+
+
+## 🧠 Technical Walkthrough
+
+This section provides a deep dive into the code's logic, explaining how it transforms raw IFC data into structured thermal reports.
+
+### 1. Robust Data Cleaning (`clean_numeric`)
+BIM data is notoriously "dirty." Architects often mix units (millimeters vs. meters) or include text symbols. The `clean_numeric` function normalizes these inputs using Regex and heuristics.
+
+*   **Logic:** It detects "mm" strings or values > 20 (assuming an element isn't 20 meters thick) and converts them to meters.
+
+```python
+def clean_numeric(val):
+    s = str(val).strip().lower()
+    # Regex: Extract numbers from strings like "150mm"
+    if "mm" in s:
+        num = re.search(r"(\d+(\.\d+)?)", s)
+        return float(num.group(1)) / 1000.0
+    
+    # Heuristic: If value > 20, assume it is in Millimeters
+    f = float(val)
+    if f > 20: return f / 1000.0
+    return f
+```
+
+### 2. The "Property Hunt" (`get_properties_merged`)
+IFC properties are hierarchical. A window's U-Value might be defined in the **Type** (shared by 50 windows) or the **Instance** (specific to one window). To catch everything, the script flattens the hierarchy.
+
+*   **Logic:** It first grabs all Type properties, then overlays Instance properties. This ensures that if a specific window overrides the standard type, the specific value is used.
+
+```python
+def get_properties_merged(element):
+    all_props = {}
+    
+    # 1. Get Type Properties (Shared)
+    if hasattr(element, "IsTypedBy"):
+        for rel in element.IsTypedBy:
+            type_entity = rel.RelatingType
+            # ... extract type psets ...
+
+    # 2. Get Instance Properties (Specific)
+    inst_psets = ifcopenshell.util.element.get_psets(element)
+    
+    # Instance properties overwrite Type properties on conflict
+    return all_props
+```
+
+### 3. Window Analysis: Composite U-Values
+Windows are rarely a single material. They are a composite of Frame and Glazing. The script performs a detailed material scan to calculate a weighted U-Value.
+
+*   **Material Scanning:** It looks through `IfcRelAssociatesMaterial` to find constituents named "Glass" or "Glazing".
+*   **Area Calculation:** If the `FrameWidth` is known, it calculates the exact frame vs. glass ratio. If not, it defaults to 15% Frame / 85% Glass.
+
+```python
+# Composite U-Value Formula used in process_windows:
+# U_total = ((U_glass * Area_glass) + (U_frame * Area_frame)) / Total_Area
+
+if frame_w and w_m and h_m:
+    # Exact Geometry Calculation
+    inner_w = max(0.0, w_m - 2*frame_w)
+    inner_h = max(0.0, h_m - 2*frame_w)
+    g_area = inner_w * inner_h
+    f_area = max(0.0, area_total - g_area)
+else:
+    # Fallback to standard industry ratio
+    f_area = area_total * 0.15
+    g_area = area_total * 0.85
+```
+
+### 4. Geometric Engine (`calculate_geom_area`)
+For Slabs and Roofs, the property "NetArea" is often missing or incorrect in exports. The script utilizes `ifcopenshell.geom` to physically analyze the 3D shape.
+
+*   **Meshing:** It converts the implicit IFC geometry into a mesh (vertices and faces).
+*   **Normal Vectors:** To calculate the area of a roof/slab, we only care about the top surface. The script checks the "Normal Vector" of every face. If the vector points **UP** (Positive Z-Axis), it adds that area to the total.
+
+```python
+def calculate_geom_area(elem):
+    # Create 3D Mesh
+    shape = ifcopenshell.geom.create_shape(settings, elem)
+    verts = np.array(shape.geometry.verts).reshape(-1, 3)
+    faces = np.array(shape.geometry.faces).reshape(-1, 3)
+    
+    total_up = 0.0
+    for face in faces:
+        p1, p2, p3 = verts[face[0]], verts[face[1]], verts[face[2]]
+        cross = np.cross(p2 - p1, p3 - p1)
+        
+        # Check if face points UP (Z > 0)
+        if (cross / np.linalg.norm(cross))[2] > 0:
+            total_up += 0.5 * np.linalg.norm(cross) # Add area of triangle
+    return total_up
+```
+
+### 5. Intelligent Categorization
+IFC classifications can be vague. A "Slab" entity might represent a Floor, a Roof, or a Foundation. The script parses names and Enums to categorize them correctly for the report.
+
+```python
+# Logic inside process_slabs
+ptype = str(getattr(elem, "PredefinedType", "")).upper()
+name = (elem.Name or "").lower()
+
+if ptype == "ROOF" or "roof" in name: 
+    cat = "Roof"
+elif ptype == "BASESLAB" or "found" in name: 
+    cat = "Foundation"
+elif is_ext_bool: 
+    cat = "Slab (External)"
+```
+
+### 6. Weighted Aggregation
+When summarizing data, a simple average is misleading (a tiny window shouldn't carry the same weight as a massive curtain wall). The script calculates **Area-Weighted Averages** for the Master Summary.
+
+```python
+def weighted_avg(x):
+    # Calculates average U-Value weighted by the Element Area
+    valid_rows = x.dropna(subset=['U_Value'])
+    if valid_rows.empty: return None
+    return np.average(valid_rows['U_Value'], weights=valid_rows['Area_m2'])
+```
