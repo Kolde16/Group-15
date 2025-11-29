@@ -8,8 +8,8 @@ A Python tool that automates the extraction of building envelope data from IFC (
 *   **Smart Data Cleaning:** Converts messy text inputs (e.g., "150mm", "0.3 W/m²K") into usable float numbers.
 *   **Window Logic:** Calculates composite U-values by separating Frame and Glass areas.
 *   **Geometric Fallback:** If property set areas are missing, it calculates area physically using 3D geometry (`ifcopenshell.geom`).
+*   **Spatial Mapping:** Extracts X/Y/Z coordinates for every element to assist in locating "bad" data.
 *   **Excel Export:** Generates a multi-sheet Excel report on your Desktop containing both summaries and raw data.
-
 ---
 
 ## Prerequisites & Installation
@@ -39,16 +39,29 @@ The script is programmed to look for the IFC file in the **exact same folder** a
  └── 📄 25-16-D-ARCH.ifc
 ```
 
-### 3. Configuration
-Open `main.py` and set your target file near the top of the script:
+### 3. Running the Code
+1.  Open `main.py` in **Spyder**.
+2.  Make sure the filename in the configuration section matches your specific IFC file.
+3.  Press the **Run** button (Green Play icon or F5).
+
+---
+
+## ⚙️ Configuration
+
+Before running the script, you must specify your target IFC file inside the code.
+
+1.  Open the python script.
+2.  Locate the **Configuration** section near the top:
 
 ```python
 # --- CONFIGURATION ---
 IFC_FILENAME = "25-16-D-ARCH.ifc"  # <--- CHANGE THIS to your filename
 ```
 
-You can also adjust the default assumptions for windows if manufacturer data is missing:
+3.  (Optional) You can also adjust the default values used for windows if specific manufacturer data is missing in the model:
+
 ```python
+# Window Defaults
 DEFAULTS = {
     "FRAME_K": 0.17,       # Frame thermal conductivity (W/mK)
     "FRAME_THICK": 0.07,   # Frame thickness (m)
@@ -168,12 +181,12 @@ Crucially, it calculates **Area-Weighted Averages** for U-Values. A simple arith
 
 ```python
 def weighted_avg(x):
-    # Drops rows with missing U-values to prevent errors
-    valid_rows = x.dropna(subset=['U_Value'])
-    if valid_rows.empty: return None
-    # Numpy weighted average
+    # Numpy weighted average using Area as the weight
     return np.average(valid_rows['U_Value'], weights=valid_rows['Area_m2'])
 ```
+
+---
+
 ## Design Decisions & Exclusions
 
 ### Why are Doors excluded?
@@ -208,3 +221,10 @@ The script automatically generates an Excel file named `{Filename}_THERMAL_REPOR
 1.  **Curved Geometry:** The geometric area calculator (`ifcopenshell.geom`) approximates curved surfaces (like domes or curved walls) by triangulating them. For extremely high-curvature surfaces, the area may vary slightly from the exact mathematical surface area.
 2.  **Missing Property Sets:** If an IFC file contains no thermal properties (`ThermalTransmittance`) and no material associations, the `U_Value` column will result in `None`. The script cannot "guess" physics without input data.
 3.  **Excel Permissions:** The script saves to the Desktop. If the file is already open in Excel, the script will fail with a `PermissionError`. **Close the Excel file before re-running the script.**
+
+---
+
+## Summary
+Title: IFC Thermal Quantifier: Automated Envelope Analysis and Reporting
+Category: OpenBIM Analysis
+Description: A Python tool that parses IFC models to quantify building envelope thermal performance. It calculates composite U-values, handles geometric area extraction, and generates detailed Excel reports for thermal analysis.
