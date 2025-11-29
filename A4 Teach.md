@@ -174,3 +174,37 @@ def weighted_avg(x):
     # Numpy weighted average
     return np.average(valid_rows['U_Value'], weights=valid_rows['Area_m2'])
 ```
+## ❓ Design Decisions & Exclusions
+
+### Why are Doors excluded?
+You will notice the script processes `IfcWindow`, `IfcWall`, `IfcSlab`, and `IfcRoof`, but explicitly ignores `IfcDoor`.
+
+*   **The Problem:** Doors are complex hybrid elements. A single door entity often contains an opaque panel (wood/steel), a glazing panel, and a frame. Applying the standard "Window Logic" (simple Frame/Glass ratio) or "Wall Logic" (solid thickness) would result in scientifically inaccurate U-values.
+*   **The Solution:** To maintain data integrity, doors are currently excluded. A dedicated `process_doors` function is required to distinguish between fully glazed doors (patio doors) and opaque doors (entrance doors) before calculation.
+
+### Why Weighted Averages?
+The **Master Summary** uses **Area-Weighted Averages** for U-Values, not simple arithmetic means.
+
+$$ U_{avg} = \frac{\sum (U_i \times Area_i)}{\sum Area_{total}} $$
+
+**Reasoning:** A small bathroom window ($0.5m^2$) should not have the same impact on the building's overall thermal performance as a large curtain wall element ($10m^2$). Simple averaging would skew the results significantly.
+
+---
+
+## 📊 The Output Report
+
+The script automatically generates an Excel file named `{Filename}_THERMAL_REPORT.xlsx`. The report is structured into three tiers of granularity:
+
+| Sheet Name | Description | Key Columns |
+| :--- | :--- | :--- |
+| **MASTER SUMMARY** | The "Executive Summary." Aggregates the entire building by Category and Position. | `Category`, `Position`, `Total_Area`, `Weighted_Avg_U` |
+| **[Type] Summary** | Grouped statistics. Useful for checking if a specific wall type (e.g., "Ext_Wall_Brick") is performing as expected. | `Type_Name`, `Thickness_mm`, `Avg_U` |
+| **[Type] Data** | **Raw Data.** Every single element found in the model is listed here. Use this to find specific "bad" elements. | `GlobalId`, `GeoLocation` (X_Y_Z), `FrameMat`, `GlassMat` |
+
+---
+
+## ⚠️ Known Limitations
+
+1.  **Curved Geometry:** The geometric area calculator (`ifcopenshell.geom`) approximates curved surfaces (like domes or curved walls) by triangulating them. For extremely high-curvature surfaces, the area may vary slightly from the exact mathematical surface area.
+2.  **Missing Property Sets:** If an IFC file contains no thermal properties (`ThermalTransmittance`) and no material associations, the `U_Value` column will result in `None`. The script cannot "guess" physics without input data.
+3.  **Excel Permissions:** The script saves to the Desktop. If the file is already open in Excel, the script will fail with a `PermissionError`. **Close the Excel file before re-running the script.**
