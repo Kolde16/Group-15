@@ -227,5 +227,5 @@ The script automatically generates an Excel file named `{Filename}_THERMAL_REPOR
 
 ## Summary
 Title: IFC Thermal Quantifier: Automated Envelope Analysis and Reporting  
-Category: OpenBIM Analysis  
+Category: Level 1 Modeller 
 Description: A Python tool that parses IFC models to quantify building envelope thermal performance. It calculates composite U-values, handles geometric area extraction, and generates detailed Excel reports for thermal analysis.  
